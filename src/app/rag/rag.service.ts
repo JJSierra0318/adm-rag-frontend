@@ -23,13 +23,16 @@ export class RagService {
     localStorage.setItem('query', historyString)
   })
 
-
   getResponse(query: string) {
     return this.http.post<any>(`http://localhost:8000/consulta`, {pregunta: query}).pipe(
       delay(2000),
       map((res) => res.respuesta),
       tap((res) => this.responseHistory.update(history => ({ ...history, [query.toLowerCase()]: res })))
     )
+  }
+
+  getHistoryResponses() {
+    return this.responseHistory();
   }
 
   /* getHistoryGifs(query: string): Gif[] {

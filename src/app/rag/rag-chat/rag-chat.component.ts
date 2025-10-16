@@ -34,7 +34,6 @@ export default class RagChatComponent {
       this.response.set(html);
 
       input.value = '';
-      console.log(this.response());
     })
   }
 }
