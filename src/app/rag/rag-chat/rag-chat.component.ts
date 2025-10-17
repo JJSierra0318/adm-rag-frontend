@@ -1,10 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { RagService } from '../rag.service';
 import { marked } from 'marked';
+import { ChartComponent } from '../chart/chart.component';
 
 @Component({
   selector: 'app-rag-chat',
-  imports: [],
+  imports: [ChartComponent],
   templateUrl: './rag-chat.component.html',
 })
 export default class RagChatComponent {
