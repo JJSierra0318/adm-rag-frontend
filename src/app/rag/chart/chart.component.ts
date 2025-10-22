@@ -1,17 +1,24 @@
 import { Component, ElementRef, Input, OnChanges, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Chart, ChartConfiguration, registerables } from 'chart.js';
-import { ChartData } from '../chart-parser.service';
+import { Chart, ChartConfiguration, registerables, ChartData as ChartJsData, ChartType } from 'chart.js';
 
 Chart.register(...registerables);
 
+export interface ChartData {
+  type: ChartType;
+  data: ChartJsData;
+  options?: ChartConfiguration['options'];
+}
+
 @Component({
   selector: 'app-chart',
+  standalone: true, 
   template: `
     <div class="card bg-base-100 shadow-xl mb-4" *ngIf="chartData">
       <div class="card-body">
-        <h3 class="card-title">{{chartData.title}}</h3>
-        <canvas #chartCanvas></canvas>
+        <div style="position: relative; height: 350px; width: 100%;">
+          <canvas #chartCanvas></canvas>
+        </div>
       </div>
     </div>
   `,
@@ -24,57 +31,28 @@ export class ChartComponent implements OnChanges, AfterViewInit {
   private chart: Chart | null = null;
 
   ngOnChanges() {
-    console.log('=== CHART COMPONENT ngOnChanges ===');
-    console.log('chartData:', this.chartData);
-    if (this.chartData && this.chartCanvas) {
-      this.createChart();
+    if (this.chartData && this.chartCanvas?.nativeElement) {
+      this.createOrUpdateChart();
     }
   }
 
   ngAfterViewInit() {
-    console.log('=== CHART COMPONENT ngAfterViewInit ===');
-    console.log('chartData:', this.chartData);
     if (this.chartData) {
-      this.createChart();
+      this.createOrUpdateChart();
     }
   }
 
-  private createChart() {
-    console.log('=== CREATING CHART ===');
-    console.log('chartData:', this.chartData);
+  private createOrUpdateChart() {
+    if (!this.chartData || !this.chartCanvas?.nativeElement) return;
     
     if (this.chart) {
       this.chart.destroy();
     }
 
-    if (!this.chartData) {
-      console.log('No chart data available');
-      return;
-    }
-
     const config: ChartConfiguration = {
       type: this.chartData.type,
-      data: {
-        labels: this.chartData.labels,
-        datasets: [{
-          label: 'Datos',
-          data: this.chartData.data,
-          backgroundColor: [
-            '#3B82F6', '#EF4444', '#10B981', '#F59E0B',
-            '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'
-          ],
-          borderColor: '#1F2937',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            display: this.chartData.type === 'pie' || this.chartData.type === 'doughnut'
-          }
-        }
-      }
+      data: this.chartData.data,
+      options: this.chartData.options,
     };
 
     this.chart = new Chart(this.chartCanvas.nativeElement, config);
