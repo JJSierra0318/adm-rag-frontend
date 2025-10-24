@@ -1,12 +1,27 @@
 import { HttpClient } from "@angular/common/http";
 import { effect, inject, Injectable, signal } from "@angular/core";
-import { delay, map, tap } from "rxjs";
+import { catchError, delay, map, tap, throwError } from "rxjs";
 import { ChartData } from './chart/chart.component';
 
 const loadFromLocalStorage = () => {
   const responsesFromLocalStorage = localStorage.getItem('query') ?? '{}'
   const response = JSON.parse(responsesFromLocalStorage)
   return response
+}
+
+const mapModelName = (model: string) => {
+  switch (model) {
+    case 'gemini':
+      return 'gemini-2.5-flash';
+    case 'gpt':
+      return 'openai/gpt-oss-120b';
+    case 'llama':
+      return 'meta-llama/llama-4-maverick-17b-128e-instruct';
+    case 'moonshotai':
+      return 'moonshotai/kimi-k2-instruct';
+    default:
+      return 'gemini-2.5-flash';
+  }
 }
 
 export interface ApiResponse {
@@ -30,8 +45,8 @@ export class RagService {
     localStorage.setItem('query', historyString)
   })
 
-getResponse(query: string) {
-  return this.http.post<ApiResponse>('http://localhost:8000/consulta/', { pregunta: query }).pipe(
+getResponse(query: string, model: string = 'gemini') {
+  return this.http.post<ApiResponse>('http://localhost:8000/consulta/', { pregunta: query, llm_name: mapModelName(model) }).pipe(
     delay(1000),
     tap((res) => {
       this.responseHistory.update(history => ({ ...history, [query.toLowerCase()]: res.texto }));
@@ -64,7 +79,11 @@ getResponse(query: string) {
         this.chartData.set(null);
       }
     }),
-    map((res) => res.texto)
+    map((res) => res.texto),
+    catchError(error => {
+          console.log(error.error.message);
+          return throwError(() => new Error('Error al obtener la respuesta del servidor'));
+        })
   );
 }
 

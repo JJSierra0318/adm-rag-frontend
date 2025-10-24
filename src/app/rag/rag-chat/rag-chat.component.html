@@ -1,9 +1,14 @@
-<div class="hero bg-base-200 min-h-screen min-w-full">
+<div class="pt-16 hero bg-base-200 min-h-screen min-w-full">
   <div class="hero-content text-center">
     <div>
       <h1 class="text-5xl font-bold">Hello there</h1>
-      <div class="join py-6 mt-5">
-        <label class="input validator join-item w-100">
+      <div class="join my-5">
+        <select class="select select-bordered join-item w-30" (change)="selectedModel.set($any($event.target).value)">
+          @for (model of models; track model) {
+            <option [selected]="model == selectedModel()" [value]="model">{{ model | titlecase }}</option>
+          }
+        </select>
+        <label class="input validator join-item w-150">
           <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
               <circle cx="11" cy="11" r="8"></circle>
@@ -14,9 +19,9 @@
         </label>
         <button (click)="onSubmit(txtInput)" class="btn btn-primary join-item" [disabled]="loading()">Search</button>
       </div>
-      @if (hasError()) {
+      @if (error()) {
       <div role="alert" class="alert alert-error alert-soft mb-5">
-        <span>Error! Please don't submit an empty query</span>
+        <span>{{ error() }}</span>
       </div>
       }
       @if (loading()) {
@@ -25,7 +30,7 @@
       </div>
       }
       @if (response()) {
-      <div class="text-justify textarea py-6 min-w-full">
+      <div class="text-justify textarea py-6 min-w-full overflow-y-auto max-h-[calc(100vh-4rem-10rem)]">
         <h3 class="text-xl text-accent font-bold">Question:</h3>
         {{query()}}
         <br>
