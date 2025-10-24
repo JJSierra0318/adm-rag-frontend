@@ -4,7 +4,7 @@
       <h1 class="text-5xl font-bold">Hello there</h1>
       <div class="join my-5">
         <div class="dropdown w-30">
-          <div tabindex="0" role="button" class="input join-item w-30 flex justify-between items-center cursor-pointer">
+          <div tabindex="0" role="button" class="input join-item w-30 flex justify-between items-center cursor-pointer" [style]="loading() ? {'pointer-events': 'none', 'opacity': '0.5'} : {}">
             {{ selectedModel() | titlecase}}
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-60" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
@@ -29,7 +29,7 @@
             </li>
           </ul>
         </div>
-        <label class="input join-item w-150 focus-within:gap-0">
+        <label class="input join-item w-150 outline-none focus:outline-none">
           <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
               <circle cx="11" cy="11" r="8"></circle>
