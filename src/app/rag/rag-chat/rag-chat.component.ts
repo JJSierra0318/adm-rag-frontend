@@ -11,15 +11,22 @@ import { TitleCasePipe } from '@angular/common';
 })
 export default class RagChatComponent {
   query = signal('');
-  response = signal<string | null>(null);
+  response = signal<string | string[][] | null>(null);
   loading = signal(false);
   error = signal<null | string>(null);
   ragService = inject(RagService);
   selectedModel = signal<string>('gemini');
 
-  models = ['gemini', 'gpt', 'llama', 'moonshotai'];
+  models = new Map<string, string>([
+    ['gemini-2.5-flash', 'gemini'],
+    ['openai/gpt-oss-120b', 'gpt'],
+    ['meta-llama/llama-4-maverick-17b-128e-instruct', 'llama'],
+    ['moonshotai/kimi-k2-instruct', 'kimi'],
+  ]);
 
   onSubmit(input: HTMLInputElement) {
+    console.log(this.selectedModel());
+    
 
     this.loading.set(true);
     if (!input.value.trim()) {
@@ -31,22 +38,35 @@ export default class RagChatComponent {
       return;
     }
 
-    this.ragService.getResponse(input.value, this.selectedModel()).subscribe({
-      next: async res => {
+    if (this.selectedModel() == 'compare') {
+      this.ragService.getMultipleResponses(input.value).subscribe({
+        next: async res => {
+          const html = [];
+          for (let respuesta of res) {
+            html.push([respuesta.modelo!, await marked.parse(respuesta.texto)]);
+          }
+          this.response.set(html);
+          this.loading.set(false);
+          this.query.set(input.value);
+        },
+      })
+    } else {
+      this.ragService.getResponse(input.value, this.selectedModel()).subscribe({
+        next: async res => {
 
-        const html = await marked.parse(res);
+          const html = await marked.parse(res);
+          this.response.set(html);
 
-        this.loading.set(false);
-        this.query.set(input.value);
-        this.response.set(html);
-
-        input.value = '';
-      },
-      error: err => {
-        this.loading.set(false);
-        this.error.set(err.message);
-        console.error('Error fetching response:', err);
-      }
-    })
+          this.loading.set(false);
+          this.query.set(input.value);
+          input.value = '';
+        },
+        error: err => {
+          this.loading.set(false);
+          this.error.set(err.message);
+          console.error('Error fetching response:', err);
+        }
+      })
+    }
   }
 }

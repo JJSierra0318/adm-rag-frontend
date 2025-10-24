@@ -1,14 +1,35 @@
 <div class="pt-16 hero bg-base-200 min-h-screen min-w-full">
-  <div class="hero-content text-center">
-    <div>
+  <div class="hero-content text-center min-w-full">
+    <div class="px-15">
       <h1 class="text-5xl font-bold">Hello there</h1>
       <div class="join my-5">
-        <select class="select select-bordered join-item w-30" (change)="selectedModel.set($any($event.target).value)">
-          @for (model of models; track model) {
-            <option [selected]="model == selectedModel()" [value]="model">{{ model | titlecase }}</option>
-          }
-        </select>
-        <label class="input validator join-item w-150">
+        <div class="dropdown w-30">
+          <div tabindex="0" role="button" class="input join-item w-30 flex justify-between items-center cursor-pointer">
+            {{ selectedModel() | titlecase}}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-60" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          <ul tabindex="-1" class="dropdown-content menu bg-base-100 rounded-box w-100 shadow-sm text-left border border-base-content/5">
+            @for (model of models.keys(); track model) {
+            <li (click)="selectedModel.set(txtModel.textContent!.toLowerCase())">
+              <div class="flex flex-col items-start gap-0">
+                <p #txtModel><strong>{{models.get(model) | titlecase}}</strong></p>
+                <p class="text-xs">model: {{model}} </p>
+              </div>
+            </li>
+            }
+            <div class="divider my-0"></div>
+            <li (click)="selectedModel.set(txtModel.textContent!.toLowerCase())">
+              <div class="flex flex-col items-start gap-0">
+                <p #txtModel><strong>Compare</strong></p>
+                <p class="text-xs">compare the answer from different models to the same question</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <label class="input join-item w-150 focus-within:gap-0">
           <svg class="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <g stroke-linejoin="round" stroke-linecap="round" stroke-width="2.5" fill="none" stroke="currentColor">
               <circle cx="11" cy="11" r="8"></circle>
@@ -35,9 +56,24 @@
         {{query()}}
         <br>
         <br>
-        <app-chart [chartData]="ragService.chartData()"></app-chart>
-        <h3 class="text-xl text-accent font-bold">Answer:</h3>
-        <p [innerHTML]="response()"></p>
+        @if (typeof response() != 'string') {
+        <div class="join w-full">
+          @for (res of response(); track $index) {
+          <div class="join-item p-5 border border-base-content/5">
+            <app-chart [chartData]="ragService.chartData()"></app-chart>
+            <h3 class="text-xl text-accent font-bold">{{ models.get(res[0]) | titlecase}}</h3>
+            <br>
+            <p [innerHTML]="res[1]"></p>
+          </div>
+          }
+        </div>
+        } @else {
+        <div>
+          <app-chart [chartData]="ragService.chartData()"></app-chart>
+          <h3 class="text-xl text-accent font-bold">Answer:</h3>
+          <p [innerHTML]="response()"></p>
+        </div>
+        }
       </div>
       }
     </div>

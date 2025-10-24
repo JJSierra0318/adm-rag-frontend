@@ -17,7 +17,7 @@ const mapModelName = (model: string) => {
       return 'openai/gpt-oss-120b';
     case 'llama':
       return 'meta-llama/llama-4-maverick-17b-128e-instruct';
-    case 'moonshotai':
+    case 'kimi':
       return 'moonshotai/kimi-k2-instruct';
     default:
       return 'gemini-2.5-flash';
@@ -27,6 +27,7 @@ const mapModelName = (model: string) => {
 export interface ApiResponse {
   texto: string;
   grafico_data?: any;
+  modelo?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -87,11 +88,22 @@ getResponse(query: string, model: string = 'gemini') {
   );
 }
 
+getMultipleResponses(query: string) {
+  return this.http.post<ApiResponse[]>('http://localhost:8000/comparar/', { pregunta: query }).pipe(
+    delay(1000),
+    tap((res) => {
+      console.log(res)
+      // this.responseHistory.update(history => ({ ...history, [query.toLowerCase()]: res.texto }));
+    }),
+    // map((res) => res.texto),
+    catchError(error => {
+          console.log(error.error.message);
+          return throwError(() => new Error('Error al obtener la respuesta del servidor'));
+        })
+  );
+}
+
   getHistoryResponses() {
     return this.responseHistory();
   }
-
-  /* getHistoryGifs(query: string): Gif[] {
-    return this.searchHistory()[query] ?? []
-  } */
 }
