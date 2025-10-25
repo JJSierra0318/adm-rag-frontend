@@ -1,0 +1,67 @@
+
+:host ::ng-deep .join.w-full {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); 
+  gap: 1rem; 
+  width: 100%;
+  align-items: start;
+}
+
+:host ::ng-deep .join.w-full > .join-item {
+  display: flex;         
+  flex-direction: column; 
+  height: auto;         
+  overflow: hidden;      
+  border: 1px solid rgba(128, 128, 128, 0.2); 
+  border-radius: 8px;    
+  padding: 1rem;
+  box-sizing: border-box; 
+}
+
+:host ::ng-deep .join.w-full > .join-item app-chart .card {
+   width: 100%; 
+   margin-bottom: 1rem;
+}
+
+
+:host ::ng-deep .join.w-full > .join-item app-chart .chart-wrapper { 
+  position: relative;
+  height: 300px; 
+  width: 100%;
+}
+
+
+:host ::ng-deep .join.w-full > .join-item p {
+  word-wrap: break-word; 
+  overflow-y: auto;      
+  max-height: 200px;     
+  margin-top: auto;      
+}
+
+:host {
+  display: block;
+}
+
+.pt-16 { padding-top: 4rem; } /* Asumiendo pt-16 = 4rem */
+.hero { display: flex; align-items: center; justify-content: center; }
+.bg-base-200 { background-color: #2a323c; } /* Ejemplo de color base */
+.min-h-screen { min-height: 100vh; }
+.min-w-full { min-width: 100%; }
+.hero-content { text-align: center; }
+.text-center { text-align: center; }
+.px-15 { padding-left: 3.75rem; padding-right: 3.75rem; } /* Asumiendo px-15 */
+.text-5xl { font-size: 3rem; line-height: 1; }
+.font-bold { font-weight: 700; }
+.my-5 { margin-top: 1.25rem; margin-bottom: 1.25rem; }
+.join { display: inline-flex; } /* O display: flex; según tu uso */
+/* ... otros estilos de .join, input, button, etc ... */
+.textarea { /* ... tus estilos ... */ }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.overflow-y-auto { overflow-y: auto; }
+.max-h-calc { max-height: calc(100vh - 4rem - 10rem); }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-accent { color: #3b82f6; } /* Ejemplo de color accent */
+.border { border-width: 1px; }
+.border-base-content\/5 { border-color: rgba(166, 173, 186, 0.05); } /* Ejemplo */
+.p-5 { padding: 1.25rem; }
+/* ... estilos para loading, error, etc. */

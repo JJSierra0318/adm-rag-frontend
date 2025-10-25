@@ -1,21 +1,24 @@
 import { Component, inject, signal } from '@angular/core';
-import { RagService } from '../rag.service';
+import { RagService, RagResponse } from '../rag.service';
 import { marked } from 'marked';
 import { ChartComponent } from '../chart/chart.component';
-import { TitleCasePipe } from '@angular/common';
+import { TitleCasePipe, CommonModule } from '@angular/common'; // CommonModule para @if y @for
 
 @Component({
   selector: 'app-rag-chat',
-  imports: [ChartComponent, TitleCasePipe],
+  imports: [ChartComponent, TitleCasePipe, CommonModule],
   templateUrl: './rag-chat.component.html',
+  styleUrls: ['./rag-chat.component.css']
 })
 export default class RagChatComponent {
   query = signal('');
-  response = signal<string | string[][] | null>(null);
+
+  response = signal<RagResponse | RagResponse[] | null>(null);
+
   loading = signal(false);
   error = signal<null | string>(null);
   ragService = inject(RagService);
-  selectedModel = signal<string>('gemini');
+  selectedModel = signal<string>('gemini'); 
 
   models = new Map<string, string>([
     ['gemini-2.5-flash', 'gemini'],
@@ -23,50 +26,82 @@ export default class RagChatComponent {
     ['meta-llama/llama-4-maverick-17b-128e-instruct', 'llama'],
     ['moonshotai/kimi-k2-instruct', 'kimi'],
   ]);
+  protected readonly Array = Array;
 
   onSubmit(input: HTMLInputElement) {
-    console.log(this.selectedModel());
-    
-
     this.loading.set(true);
-    if (!input.value.trim()) {
+    this.error.set(null);
+    this.response.set(null);
+    const userQuery = input.value.trim();
+
+    if (!userQuery) {
       this.loading.set(false);
       this.error.set("Error! Please don't submit an empty query");
-      setTimeout(() => {
-        this.error.set(null);
-      }, 2000);
+      setTimeout(() => { this.error.set(null); }, 2000);
       return;
     }
+    
+    this.query.set(userQuery);
 
-    if (this.selectedModel() == 'compare') {
-      this.ragService.getMultipleResponses(input.value).subscribe({
-        next: async res => {
-          const html = [];
-          for (let respuesta of res) {
-            html.push([respuesta.modelo!, await marked.parse(respuesta.texto)]);
+    if (this.selectedModel() === 'compare') {
+      this.ragService.getMultipleResponses(userQuery).subscribe({
+       next: async (responses: RagResponse[]) => {
+      
+      let maxValue = 0;
+
+      for (const res of responses) {
+        res.texto = await marked.parse(res.texto);
+        if (res.grafico_data?.data?.datasets) {
+          for (const dataset of res.grafico_data.data.datasets) {
+            const dataArray = (dataset.data as number[]).filter(d => typeof d === 'number');
+            if (dataArray.length > 0) {
+              const maxInData = Math.max(...dataArray);
+              if (maxInData > maxValue) {
+                maxValue = maxInData;
+              }
+            }
           }
-          this.response.set(html);
+        }
+      }
+
+      const suggestedMax = maxValue * 1.1; 
+      for (const res of responses) {
+        if (res.grafico_data) {
+          res.grafico_data.options = res.grafico_data.options || { responsive: true, maintainAspectRatio: false };
+          res.grafico_data.options.scales = res.grafico_data.options.scales || {};
+          if (!res.grafico_data.options.scales['y']) {
+            res.grafico_data.options.scales['y'] = {};
+          }
+          const yAxisOptions = res.grafico_data.options.scales['y'] as any;
+
+          yAxisOptions.max = suggestedMax;
+          yAxisOptions.beginAtZero = true;
+          yAxisOptions.ticks = { stepSize: Math.max(1, Math.ceil(suggestedMax / 10)) }; // Usamos suggestedMax
+        }
+      }
+      
+      this.response.set(responses); 
+      this.loading.set(false);
+      input.value = '';
+    },
+        error: err => {
           this.loading.set(false);
-          this.query.set(input.value);
-        },
-      })
+          this.error.set(err.message);
+        }
+      });
     } else {
-      this.ragService.getResponse(input.value, this.selectedModel()).subscribe({
-        next: async res => {
-
-          const html = await marked.parse(res);
-          this.response.set(html);
-
+      this.ragService.getResponse(userQuery, this.selectedModel()).subscribe({
+        next: async (res: RagResponse) => {
+          res.texto = await marked.parse(res.texto);
+          this.response.set(res);
           this.loading.set(false);
-          this.query.set(input.value);
           input.value = '';
         },
         error: err => {
           this.loading.set(false);
           this.error.set(err.message);
-          console.error('Error fetching response:', err);
         }
-      })
+      });
     }
   }
 }

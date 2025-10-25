@@ -1,12 +1,18 @@
 import { HttpClient } from "@angular/common/http";
 import { effect, inject, Injectable, signal } from "@angular/core";
-import { catchError, delay, map, tap, throwError } from "rxjs";
+import { catchError, map, Observable, throwError } from "rxjs";
 import { ChartData } from './chart/chart.component';
 
-const loadFromLocalStorage = () => {
-  const responsesFromLocalStorage = localStorage.getItem('query') ?? '{}'
-  const response = JSON.parse(responsesFromLocalStorage)
-  return response
+export interface RagResponse {
+  texto: string;
+  grafico_data: ChartData | null;
+  modelo?: string; 
+}
+
+export interface ApiResponse {
+  texto: string;
+  grafico_data?: any;
+  modelo?: string;
 }
 
 const mapModelName = (model: string) => {
@@ -22,87 +28,67 @@ const mapModelName = (model: string) => {
     default:
       return 'gemini-2.5-flash';
   }
-}
-
-export interface ApiResponse {
-  texto: string;
-  grafico_data?: any;
-  modelo?: string;
-}
+};
 
 @Injectable({ providedIn: 'root' })
 export class RagService {
-
   private http = inject(HttpClient);
 
-  response = signal<string>('');
-  responseLoading = signal(false);
-  chartData = signal<ChartData | null>(null);
 
-  responseHistory = signal<Record<string, string>>(loadFromLocalStorage());
+  responseHistory = signal<Record<string, string>>({});
 
   saveResponsesToLocalStorage = effect(() => {
     const historyString = JSON.stringify(this.responseHistory())
     localStorage.setItem('query', historyString)
-  })
+  });
 
-getResponse(query: string, model: string = 'gemini') {
-  return this.http.post<ApiResponse>('http://localhost:8000/consulta/', { pregunta: query, llm_name: mapModelName(model) }).pipe(
-    delay(1000),
-    tap((res) => {
-      this.responseHistory.update(history => ({ ...history, [query.toLowerCase()]: res.texto }));
-      
-      if (res.grafico_data) {
-        const newChartData: ChartData = {
-          type: res.grafico_data.type,
-          data: {
-            labels: res.grafico_data.labels,
-            datasets: res.grafico_data.datasets
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false, 
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: { stepSize: 1 }
-              }
-            },
-            plugins: {
-              legend: {
-                display: res.grafico_data.datasets.length > 1 
-              }
-            }
-          }
-        };
-        this.chartData.set(newChartData);
-      } else {
-        this.chartData.set(null);
-      }
-    }),
-    map((res) => res.texto),
-    catchError(error => {
-          console.log(error.error.message);
-          return throwError(() => new Error('Error al obtener la respuesta del servidor'));
-        })
-  );
-}
+  getResponse(query: string, model: string = 'gemini'): Observable<RagResponse> {
+    const llm_name = mapModelName(model);
+    return this.http.post<ApiResponse>('http://localhost:8000/consulta/', { pregunta: query, llm_name }).pipe(
+      map(res => this.transformApiResponse(res, query, model)), // Usamos el método helper
+      catchError(this.handleError)
+    );
+  }
 
-getMultipleResponses(query: string) {
-  return this.http.post<ApiResponse[]>('http://localhost:8000/comparar/', { pregunta: query }).pipe(
-    delay(1000),
-    tap((res) => {
-      for (let entry of res) {
-        this.responseHistory.update(history => ({ ...history, [query.toLowerCase() + ' - ' + entry.modelo]: entry.texto }));
-      }
-    }),
-    // map((res) => res.texto),
-    catchError(error => {
-          console.log(error.error.message);
-          return throwError(() => new Error('Error al obtener la respuesta del servidor'));
-        })
-  );
-}
+
+  getMultipleResponses(query: string): Observable<RagResponse[]> {
+    return this.http.post<ApiResponse[]>('http://localhost:8000/comparar/', { pregunta: query }).pipe(
+      map(responses => responses.map(res => this.transformApiResponse(res, query, res.modelo!))),
+      catchError(this.handleError)
+    );
+  }
+
+  private transformApiResponse(res: ApiResponse, query: string, model: string): RagResponse {
+    this.responseHistory.update(history => ({ ...history, [query.toLowerCase() + ' - ' + model]: res.texto }));
+
+    let chartData: ChartData | null = null;
+    if (res.grafico_data) {
+      chartData = {
+        type: res.grafico_data.type,
+        data: {
+          labels: res.grafico_data.labels,
+          datasets: res.grafico_data.datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+          plugins: { legend: { display: res.grafico_data.datasets.length > 1 } }
+        }
+      };
+    }
+
+    return {
+      texto: res.texto,
+      grafico_data: chartData,
+      modelo: model
+    };
+  }
+
+  private handleError(error: any) {
+    console.error("Error en RagService:", error);
+    return throwError(() => new Error(error.error?.detail || 'Error al obtener la respuesta del servidor'));
+  }
 
   getHistoryResponses() {
     return this.responseHistory();

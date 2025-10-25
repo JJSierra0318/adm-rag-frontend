@@ -4,7 +4,7 @@
       <h1 class="text-5xl font-bold">Hello there</h1>
       <div class="join my-5">
         <div class="dropdown w-30">
-          <div tabindex="0" role="button" class="input join-item w-30 flex justify-between items-center cursor-pointer" [style]="loading() ? {'pointer-events': 'none', 'opacity': '0.5'} : {}">
+          <div #dropdownButton tabindex="0" role="button" class="input join-item w-30 flex justify-between items-center cursor-pointer" [style]="loading() ? {'pointer-events': 'none', 'opacity': '0.5'} : {}">
             {{ selectedModel() | titlecase}}
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-60" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
@@ -13,7 +13,7 @@
           </div>
           <ul tabindex="-1" class="dropdown-content menu bg-base-100 rounded-box w-100 shadow-sm text-left border border-base-content/5">
             @for (model of models.keys(); track model) {
-            <li (click)="selectedModel.set(txtModel.textContent!.toLowerCase())">
+            <li (click)="selectedModel.set(txtModel.textContent!.toLowerCase()); dropdownButton.blur()">
               <div class="flex flex-col items-start gap-0">
                 <p #txtModel><strong>{{models.get(model) | titlecase}}</strong></p>
                 <p class="text-xs">model: {{model}} </p>
@@ -21,7 +21,7 @@
             </li>
             }
             <div class="divider my-0"></div>
-            <li (click)="selectedModel.set(txtModel.textContent!.toLowerCase())">
+            <li (click)="selectedModel.set(txtModel.textContent!.toLowerCase()); dropdownButton.blur()">
               <div class="flex flex-col items-start gap-0">
                 <p #txtModel><strong>Compare</strong></p>
                 <p class="text-xs">compare the answer from different models to the same question</p>
@@ -40,42 +40,48 @@
         </label>
         <button (click)="onSubmit(txtInput)" class="btn btn-primary join-item" [disabled]="loading()">Search</button>
       </div>
+      
       @if (error()) {
       <div role="alert" class="alert alert-error alert-soft mb-5">
         <span>{{ error() }}</span>
       </div>
       }
+      
       @if (loading()) {
       <div>
         <span class="loading loading-infinity loading-xl text-success my-5"></span>
       </div>
       }
-      @if (response()) {
-      <div class="text-justify textarea py-6 min-w-full overflow-y-auto max-h-[calc(100vh-4rem-10rem)]">
-        <h3 class="text-xl text-accent font-bold">Question:</h3>
-        {{query()}}
-        <br>
-        <br>
-        @if (typeof response() != 'string') {
-        <div class="join w-full">
-          @for (res of response(); track $index) {
-          <div class="join-item p-5 border border-base-content/5">
-            <app-chart [chartData]="ragService.chartData()"></app-chart>
-            <h3 class="text-xl text-accent font-bold">{{ models.get(res[0]) | titlecase}}</h3>
-            <br>
-            <p [innerHTML]="res[1]"></p>
-          </div>
+
+      @if (response(); as res) { 
+        <div class="text-justify textarea py-6 min-w-full overflow-y-auto max-h-[calc(100vh-4rem-10rem)]">
+          <h3 class="text-xl text-accent font-bold">Question:</h3>
+          {{query()}}
+          <br>
+          <br>
+
+          @if (Array.isArray(res)) {
+            <div class="join w-full">
+              @for (item of res; track $index) {
+                <div class="join-item p-5 border border-base-content/5">
+                  <app-chart [chartData]="item.grafico_data"></app-chart>
+                  
+                  <h3 class="text-xl text-accent font-bold">{{ models.get(item.modelo!) | titlecase}}</h3>
+                  <br>
+                  <p [innerHTML]="item.texto"></p>
+                </div>
+              }
+            </div>
+          } @else {
+            <div>
+              <app-chart [chartData]="res.grafico_data"></app-chart>
+              <h3 class="text-xl text-accent font-bold">Answer:</h3>
+              <p [innerHTML]="res.texto"></p>
+            </div>
           }
         </div>
-        } @else {
-        <div>
-          <app-chart [chartData]="ragService.chartData()"></app-chart>
-          <h3 class="text-xl text-accent font-bold">Answer:</h3>
-          <p [innerHTML]="response()"></p>
-        </div>
-        }
-      </div>
       }
+      
     </div>
   </div>
 </div>
