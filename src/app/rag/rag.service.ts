@@ -92,8 +92,9 @@ getMultipleResponses(query: string) {
   return this.http.post<ApiResponse[]>('http://localhost:8000/comparar/', { pregunta: query }).pipe(
     delay(1000),
     tap((res) => {
-      console.log(res)
-      // this.responseHistory.update(history => ({ ...history, [query.toLowerCase()]: res.texto }));
+      for (let entry of res) {
+        this.responseHistory.update(history => ({ ...history, [query.toLowerCase() + ' - ' + entry.modelo]: entry.texto }));
+      }
     }),
     // map((res) => res.texto),
     catchError(error => {
